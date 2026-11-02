@@ -36,12 +36,16 @@ jobs:
 
       - name: Configure Godot editor settings (Android SDK path)
         run: |
-          mkdir -p ~/.config/godot
-          cat > ~/.config/godot/editor_settings-4.3.tres <<'EOF'
-          [gd_resource type="EditorSettings" format=3]
-          [resource]
-          export/android/android_sdk_path = "/usr/lib/android-sdk"
-          EOF
+          APKSIGNER=$(find /usr /opt /home /root -name apksigner -type f -path '*build-tools*' 2>/dev/null | head -1)
+          echo "apksigner found at: $APKSIGNER"
+          SDK_DIR=$(dirname "$(dirname "$(dirname "$APKSIGNER")")")
+          echo "Android SDK directory: $SDK_DIR"
+          ls "$SDK_DIR/platform-tools" "$SDK_DIR/build-tools"
+          godot --headless --editor --quit --path . || true
+          SETTINGS=~/.config/godot/editor_settings-4.3.tres
+          grep -v 'export/android/android_sdk_path' "$SETTINGS" > /tmp/es.tres || true
+          echo "export/android/android_sdk_path = \"$SDK_DIR\"" >> /tmp/es.tres
+          cp /tmp/es.tres "$SETTINGS"
 
       - name: Generate debug keystore + patch preset
         run: |
