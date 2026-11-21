@@ -34,17 +34,19 @@ jobs:
           mkdir -p ~/.local/share/godot/export_templates/4.3.stable
           mv templates/* ~/.local/share/godot/export_templates/4.3.stable/
 
-      - name: Configure Godot editor settings (Android SDK path)
+      - name: Configure Godot editor settings (Android SDK + Java SDK paths)
         run: |
           APKSIGNER=$(find /usr /opt /home /root -name apksigner -type f -path '*build-tools*' 2>/dev/null | head -1)
           echo "apksigner found at: $APKSIGNER"
           SDK_DIR=$(dirname "$(dirname "$(dirname "$APKSIGNER")")")
           echo "Android SDK directory: $SDK_DIR"
+          echo "Java home: $JAVA_HOME"
           ls "$SDK_DIR/platform-tools" "$SDK_DIR/build-tools"
           godot --headless --editor --quit --path . || true
           SETTINGS=~/.config/godot/editor_settings-4.3.tres
-          grep -v 'export/android/android_sdk_path' "$SETTINGS" > /tmp/es.tres || true
+          grep -v 'export/android/android_sdk_path' "$SETTINGS" | grep -v 'export/android/java_sdk_path' > /tmp/es.tres || true
           echo "export/android/android_sdk_path = \"$SDK_DIR\"" >> /tmp/es.tres
+          echo "export/android/java_sdk_path = \"$JAVA_HOME\"" >> /tmp/es.tres
           cp /tmp/es.tres "$SETTINGS"
 
       - name: Generate debug keystore + patch preset
@@ -58,10 +60,10 @@ jobs:
       - name: Export Android APK (debug-signed test build)
         run: |
           mkdir -p build
-          godot --headless --export-release "Android" "$GITHUB_WORKSPACE/build/hill-traffic-runner.apk"
+          godot --headless --export-release "Android" "$GITHUB_WORKSPACE/build/daily-brain-workout.apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: HillTrafficRunner-test-apk
-          path: build/hill-traffic-runner.apk
+          name: DailyBrainWorkout-test-apk
+          path: build/daily-brain-workout.apk
