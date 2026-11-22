@@ -35,6 +35,17 @@ static func label(text: String, size: int = 18, color: Color = TEXT) -> Label:
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return l
 
+# Single-line label — jab label ki width us ke apne minimum size se
+# tay hoti ho (HBox ke andar, CenterContainer me) to do cheezein lazmi:
+# autowrap OFF aur clip_text OFF. Godot 4.3 me wrapping label ka
+# minimum width ~1px report hota hai, aur clip_text bhi minimum width
+# ko ~1px kar deta hai — container phir 1px de kar text ko ya to
+# harf-harf stack kar deta hai ya kaat deta hai.
+static func label1(text: String, size: int = 18, color: Color = TEXT) -> Label:
+	var l := label(text, size, color)
+	l.autowrap_mode = TextServer.AUTOWRAP_OFF
+	return l
+
 static func button(text: String, bg: Color, font_size: int = 18, font_color: Color = DARK_TEXT) -> Button:
 	var b := Button.new()
 	b.text = text

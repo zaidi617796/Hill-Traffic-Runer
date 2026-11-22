@@ -14,9 +14,13 @@ var best_box: VBoxContainer
 
 func _ready() -> void:
 	var mc := UI.margins(self, 20)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	mc.add_child(scroll)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 14)
-	mc.add_child(v)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(v)
 
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 12)
@@ -25,7 +29,7 @@ func _ready() -> void:
 	back.custom_minimum_size = Vector2(96, 46)
 	back.pressed.connect(func() -> void: back_requested.emit())
 	top.add_child(back)
-	top.add_child(UI.label("My Progress", 24, UI.TEXT))
+	top.add_child(UI.label1("My Progress", 24, UI.TEXT))
 
 	# --- Streak card ---
 	var scard := UI.card()
@@ -34,38 +38,58 @@ func _ready() -> void:
 	sv.add_theme_constant_override("separation", 6)
 	scard.add_child(sv)
 	streak_label = UI.label("0 day streak", 26, Color("FFB020"))
+	streak_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	sv.add_child(streak_label)
 	total_label = UI.label("Total workouts: 0", 15, UI.MUTED)
+	total_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	sv.add_child(total_label)
 	sv.add_child(UI.vspace(4))
-	sv.add_child(UI.label("Last 7 days", 14, UI.MUTED))
+	var last7 := UI.label("Last 7 days", 14, UI.MUTED)
+	last7.autowrap_mode = TextServer.AUTOWRAP_OFF
+	sv.add_child(last7)
 	week_box = HBoxContainer.new()
 	week_box.add_theme_constant_override("separation", 8)
 	sv.add_child(week_box)
 
 	# --- Personal bests ---
-	v.add_child(UI.label("Personal bests", 20, UI.TEXT))
+	var pb_title := UI.label("Personal bests", 20, UI.TEXT)
+	pb_title.autowrap_mode = TextServer.AUTOWRAP_OFF
+	v.add_child(pb_title)
 	best_box = VBoxContainer.new()
 	best_box.add_theme_constant_override("separation", 10)
 	v.add_child(best_box)
 	for gid in GameInfo.free_play_order():
 		best_box.add_child(_best_row(str(gid)))
 
-	v.add_child(UI.label("Progress is saved on this device only.", 13, UI.MUTED))
+	var pfooter := UI.label("Progress is saved on this device only.", 13, UI.MUTED)
+	pfooter.autowrap_mode = TextServer.AUTOWRAP_OFF
+	v.add_child(pfooter)
 
 func _best_row(game_id: String) -> PanelContainer:
 	var info := GameInfo.get_game(game_id)
 	var row := UI.card()
+	row.custom_minimum_size = Vector2(0, 56)
+	row.size_flags_vertical = Control.SIZE_FILL
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 12)
 	row.add_child(h)
-	h.add_child(UI.dot(info["accent"], 14))
-	h.add_child(UI.label(str(info["name"]), 17, UI.TEXT))
+	var dot := UI.dot(info["accent"], 14)
+	dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(dot)
+	var name_label := UI.label(str(info["name"]), 17, UI.TEXT)
+	name_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(name_label)
 	h.add_child(UI.hspacer())
 	var val := UI.label("—", 17, UI.TEXT)
+	val.autowrap_mode = TextServer.AUTOWRAP_OFF
+	val.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	val.name = "best_" + game_id
 	h.add_child(val)
 	return row
+
+func _fmt_time(sec: int) -> String:
+	return "%d:%02d" % [sec / 60, sec % 60]
 
 func refresh() -> void:
 	var st: Dictionary = Save.data["streak"]
@@ -87,7 +111,13 @@ func refresh() -> void:
 		var val := best_box.find_child("best_" + str(gid), true, false) as Label
 		if val == null:
 			continue
-		if bool(info["playable"]):
+		if str(gid) == "tube_sort":
+			var spb := Save.get_sort_pb("tube_sort")
+			if spb.is_empty():
+				val.text = "—"
+			else:
+				val.text = "%d moves · %s" % [int(spb["moves"]), _fmt_time(int(spb["seconds"]))]
+		elif bool(info["playable"]):
 			var pb := Save.get_pb(str(gid))
 			val.text = "%d" % pb if pb > 0 else "—"
 		else:

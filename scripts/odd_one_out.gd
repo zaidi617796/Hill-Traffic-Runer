@@ -60,8 +60,8 @@ func _ready() -> void:
 	var title_v := VBoxContainer.new()
 	title_v.add_theme_constant_override("separation", 0)
 	top.add_child(title_v)
-	title_v.add_child(UI.label("Odd One Out", 21, UI.TEXT))
-	mode_label = UI.label("", 13, UI.MUTED)
+	title_v.add_child(UI.label1("Odd One Out", 21, UI.TEXT))
+	mode_label = UI.label1("", 13, UI.MUTED)
 	title_v.add_child(mode_label)
 	top.add_child(UI.hspacer())
 	dots_box = HBoxContainer.new()
@@ -84,7 +84,7 @@ func _ready() -> void:
 	status_label = UI.label("Find the tile that is different", 19, UI.TEXT)
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(status_label)
-	score_label = UI.label("Score: 0 · Round 1", 16, UI.MUTED)
+	score_label = UI.label1("Score: 0 · Round 1", 16, UI.MUTED)
 	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(score_label)
 

@@ -1,5 +1,6 @@
 extends SceneTree
-## Headless checks — Memory Tiles swap + 3 naye playable games.
+## Headless checks — roster (Tube Sort in, Quick Math out), games,
+## home layout (compact rows, chip) aur main shell integration.
 ## Run: godot --headless --path . -s res://tests/check_new_games.gd
 
 var passes := 0
@@ -44,6 +45,8 @@ func _run() -> void:
 	await _test_color_word_clash()
 	await _test_odd_one_out()
 	await _test_path_memory()
+	await _test_tube_sort()
+	await _test_home_layout()
 	await _test_main_integration()
 	print("CHECKS DONE: %d passed, %d failed" % [passes, failures])
 	quit(0 if failures == 0 else 1)
@@ -62,8 +65,21 @@ func _test_registry() -> void:
 	for gid in ["color_word_clash", "odd_one_out", "path_memory"]:
 		check(all.has(gid), "registry: %s present" % gid)
 		check(bool(all[gid].get("playable", false)) == true, "registry: %s playable" % gid)
+	check(not all.has("quick_math"), "registry: quick_math removed")
+	check(all.has("tube_sort"), "registry: tube_sort present")
+	var ts: Dictionary = all.get("tube_sort", {})
+	check(str(ts.get("name", "")) == "Tube Sort", "registry: tube_sort name")
+	check(bool(ts.get("playable", false)) == true, "registry: tube_sort playable")
+	var playable_count := 0
+	var soon_count := 0
+	for gid in all.keys():
+		if bool(all[gid].get("playable", false)):
+			playable_count += 1
+		else:
+			soon_count += 1
+	check(playable_count == 6 and soon_count == 2, "registry: 6 playable + 2 coming soon (got %d/%d)" % [playable_count, soon_count])
 	var order: Array = GameInfo.free_play_order()
-	var expected: Array = ["sequence_memory", "memory_tiles", "spot_difference", "quick_math", "number_slide", "color_word_clash", "odd_one_out", "path_memory"]
+	var expected: Array = ["sequence_memory", "memory_tiles", "spot_difference", "tube_sort", "number_slide", "color_word_clash", "odd_one_out", "path_memory"]
 	check(order == expected, "registry: free_play_order exact (got %s)" % str(order))
 
 # --- Color Word Clash ---
@@ -203,18 +219,172 @@ func _test_path_memory() -> void:
 	check(int(f.get("score", -1)) > 0 and int(f.get("stars", -1)) >= 0 and int(f.get("stars", 99)) <= 3, "pm: sane score/stars %s" % str(f))
 	g.queue_free()
 
+# --- Tube Sort ---
+
+func _colour_counts(tubes: Array) -> Dictionary:
+	var counts := {}
+	for t in tubes:
+		for u in t:
+			counts[int(u)] = int(counts.get(int(u), 0)) + 1
+	return counts
+
+func _test_tube_sort() -> void:
+	var g = spawn("res://scripts/tube_sort.gd")
+	await process_frame
+	await process_frame
+	g.start_run({"mode": "free", "index": 0, "total": 1})
+	check(g.start_overlay.visible, "ts: start overlay shown")
+	check(g.tubes.size() == 8, "ts: 8 tubes")
+	var counts := _colour_counts(g.tubes)
+	var counts_ok := counts.size() == 6
+	for c in counts.keys():
+		if int(counts[c]) != 4:
+			counts_ok = false
+	check(counts_ok, "ts: 6 colours x 4 units (got %s)" % str(counts))
+	var empties := 0
+	for t in g.tubes:
+		if (t as Array).is_empty():
+			empties += 1
+	check(empties == 2, "ts: exactly 2 empty tubes")
+	check(not g._is_solved(), "ts: puzzle not already solved")
+	check(g.scramble_steps.size() >= 20, "ts: scramble applied (%d steps)" % g.scramble_steps.size())
+	g._on_start_pressed()
+	check(g.state == "playing", "ts: playing after start")
+	# Ek legal pour dhoondo aur karo
+	var src := -1
+	var dst := -1
+	for s in 8:
+		for d in 8:
+			if g._can_pour(s, d):
+				src = s
+				dst = d
+				break
+		if src != -1:
+			break
+	check(src != -1, "ts: a legal pour exists")
+	var src_before: Array = (g.tubes[src] as Array).duplicate()
+	var dst_before: Array = (g.tubes[dst] as Array).duplicate()
+	g._on_tube_tapped(src)
+	check(g.selected == src, "ts: tap selects source tube")
+	g._on_tube_tapped(dst)
+	check(g.moves == 1 and g.selected == -1, "ts: pour counts one move, selection cleared")
+	var run_len := 0
+	var top_col := int(src_before.back())
+	for i in range(src_before.size() - 1, -1, -1):
+		if int(src_before[i]) != top_col:
+			break
+		run_len += 1
+	var expect_moved := mini(run_len, 4 - dst_before.size())
+	check(g.tubes[src].size() == src_before.size() - expect_moved and g.tubes[dst].size() == dst_before.size() + expect_moved, "ts: pour moved top run (%d units)" % expect_moved)
+	check(int(g.tubes[dst].back()) == top_col, "ts: poured colour on top of destination")
+	# Undo purani haalat wapas lata hai
+	g._on_undo_pressed()
+	check(g.moves == 0 and g.tubes[src].size() == src_before.size() and g.tubes[dst].size() == dst_before.size(), "ts: undo restores state and move count")
+	# Illegal pour: selection dusri tube par shift hoti hai, move nahi banta
+	var bad_s := -1
+	var bad_d := -1
+	for s in 8:
+		for d in 8:
+			if s != d and not (g.tubes[s] as Array).is_empty() and not (g.tubes[d] as Array).is_empty() and not g._can_pour(s, d):
+				bad_s = s
+				bad_d = d
+				break
+		if bad_s != -1:
+			break
+	check(bad_s != -1, "ts: an illegal pair exists")
+	g._on_tube_tapped(bad_s)
+	g._on_tube_tapped(bad_d)
+	check(g.moves == 0 and g.selected == bad_d, "ts: illegal pour reselects, no move counted")
+	# Restart initial layout par wapas
+	g.selected = -1
+	if src != -1:
+		g._do_pour(src, dst)
+	g._on_restart_pressed()
+	check(g.moves == 0 and str(g.tubes) == str(g.initial_tubes), "ts: restart restores initial layout")
+	# Solvability: scramble ka ulta sequence hal tak le jata hai
+	var solved_ok: bool = g.debug_solve()
+	check(solved_ok and g._is_solved(), "ts: generated puzzle is solvable (reverse scramble solves it)")
+	check(g.state == "over" and g.end_overlay.visible, "ts: solving shows end overlay")
+	g._on_see_score_pressed()
+	var f := last_finish("tube_sort")
+	check(not f.is_empty(), "ts: finished signal fired")
+	check(int(f.get("score", -1)) >= 100 and int(f.get("score", 9999)) <= 1200, "ts: sane score %s" % str(f))
+	check(int(f.get("stars", -1)) >= 1 and int(f.get("stars", 99)) <= 3, "ts: sane stars %s" % str(f))
+	# Sort PB: kam moves behtar, barabar par tez waqt
+	var Save = root.get_node("Save")
+	Save.data["pb_sort"] = {}
+	check(Save.submit_sort_pb("tube_sort", 30, 120), "ts pb: first best accepted")
+	check(not Save.submit_sort_pb("tube_sort", 31, 90), "ts pb: more moves rejected")
+	check(not Save.submit_sort_pb("tube_sort", 30, 130), "ts pb: same moves slower rejected")
+	check(Save.submit_sort_pb("tube_sort", 30, 110), "ts pb: same moves faster accepted")
+	check(Save.submit_sort_pb("tube_sort", 25, 300), "ts pb: fewer moves accepted")
+	var rec: Dictionary = Save.get_sort_pb("tube_sort")
+	check(int(rec.get("moves", -1)) == 25 and int(rec.get("seconds", -1)) == 300, "ts pb: stored best is 25 moves / 300s")
+	Save.data["pb_sort"] = {}
+	Save.persist()
+	g.queue_free()
+
+# --- Home layout (compact rows regression) ---
+
+func _test_home_layout() -> void:
+	for sz in [Vector2(720, 1280), Vector2(720, 1600), Vector2(1280, 720)]:
+		var host := Control.new()
+		host.size = sz
+		root.add_child(host)
+		var main = load("res://main.tscn").instantiate()
+		host.add_child(main)
+		await process_frame
+		await process_frame
+		await process_frame
+		var home = main.screens["home"]
+		check(home.game_rows.size() == 8, "layout %s: 8 game rows built" % str(sz))
+		# Font-metrics se azad checks: saari rows ek jitni unchi (koi
+		# phaila hua giant card nahi), naam/sub ek line, chip ek line.
+		var first_h := -1.0
+		var uniform_ok := true
+		var lines_ok := true
+		var prev_bottom := -1.0
+		var ordered_ok := true
+		for gid in ["sequence_memory", "memory_tiles", "spot_difference", "tube_sort", "number_slide", "color_word_clash", "odd_one_out", "path_memory"]:
+			var row: PanelContainer = home.game_rows[gid]
+			if first_h < 0.0:
+				first_h = row.size.y
+			elif absf(row.size.y - first_h) > 2.0:
+				uniform_ok = false
+			var tv := row.get_child(0).get_child(1) as VBoxContainer
+			if (tv.get_child(0) as Label).get_line_count() != 1 or (tv.get_child(1) as Label).get_line_count() != 1:
+				lines_ok = false
+			if row.global_position.y < prev_bottom - 1.0:
+				ordered_ok = false
+			prev_bottom = row.global_position.y + row.size.y
+		check(uniform_ok, "layout %s: all rows one uniform compact height (no giant cards)" % str(sz))
+		check(lines_ok, "layout %s: name + tagline stay on one line each" % str(sz))
+		check(ordered_ok, "layout %s: rows stacked in order, no overlap" % str(sz))
+		var chips_ok := true
+		for gid in home.soon_chips.keys():
+			var chip: PanelContainer = home.soon_chips[gid]
+			var chip_label := chip.get_child(0) as Label
+			if chip.size.x < 90.0 or chip_label.get_line_count() != 1:
+				chips_ok = false
+		check(home.soon_chips.size() == 2 and chips_ok, "layout %s: coming-soon chips wide, text on one line (no letter stack)" % str(sz))
+		main.queue_free()
+		host.queue_free()
+		await process_frame
+
 # --- Main shell integration ---
 
 func _test_main_integration() -> void:
 	var Save = root.get_node("Save")
 	Save.data["workout"]["date"] = "2000-01-01" # aaj ka workout naye order se bane
 	var w: Dictionary = Save.ensure_today_workout()
-	check((w["order"] as Array).size() == 5, "main: workout has 5 games")
+	check((w["order"] as Array).size() == 6, "main: workout has 6 games")
+	check((w["order"] as Array).has("tube_sort"), "main: workout includes tube_sort")
+	check(not (w["order"] as Array).has("quick_math"), "main: workout has no quick_math")
 	var main = load("res://main.tscn").instantiate()
 	root.add_child(main)
 	await process_frame
 	await process_frame
-	for gid in ["home", "progress", "result", "sequence_memory", "number_slide", "color_word_clash", "odd_one_out", "path_memory"]:
+	for gid in ["home", "progress", "result", "sequence_memory", "number_slide", "color_word_clash", "odd_one_out", "path_memory", "tube_sort"]:
 		check(main.screens.has(gid), "main: screen %s registered" % gid)
 	# Free play: color_word_clash khel kar result screen tak
 	main._on_play_requested("color_word_clash")
@@ -233,4 +403,17 @@ func _test_main_integration() -> void:
 	check(main.current == main.screens[str(w["order"][0])], "main: workout starts first game")
 	main.current.exited.emit()
 	check(main.current == main.screens["home"], "main: exit returns home")
+	# Free play: tube sort khol kar hal karo — result + sort PB main flow se
+	Save.data["pb_sort"] = {}
+	main._on_play_requested("tube_sort")
+	var tg = main.screens["tube_sort"]
+	check(main.current == tg, "main: free play opens tube sort")
+	tg._on_start_pressed()
+	check(tg.debug_solve(), "main: tube sort solved in main flow")
+	tg._on_see_score_pressed()
+	check(main.current == main.screens["result"], "main: result screen after tube sort")
+	var spb: Dictionary = Save.get_sort_pb("tube_sort")
+	check(not spb.is_empty() and int(spb["moves"]) == tg.moves, "main: tube sort PB saved as moves/time")
+	Save.data["pb_sort"] = {}
+	Save.persist()
 	main.queue_free()

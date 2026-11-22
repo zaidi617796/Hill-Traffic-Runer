@@ -64,13 +64,20 @@ func _entry_row(e: Dictionary) -> PanelContainer:
 	var tv := VBoxContainer.new()
 	tv.add_theme_constant_override("separation", 2)
 	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	h.add_child(tv)
-	tv.add_child(UI.label(str(e["name"]), 18, UI.TEXT))
-	tv.add_child(UI.label("%d points" % int(e["score"]), 13, UI.MUTED))
+	var ename := UI.label(str(e["name"]), 18, UI.TEXT)
+	ename.autowrap_mode = TextServer.AUTOWRAP_OFF
+	tv.add_child(ename)
+	var epts := UI.label("%d points" % int(e["score"]), 13, UI.MUTED)
+	epts.autowrap_mode = TextServer.AUTOWRAP_OFF
+	tv.add_child(epts)
 	var stars := StarsRow.new()
 	stars.set_stars(int(e["stars"]))
 	h.add_child(stars)
 	if bool(e["new_best"]):
 		var chip := UI.label("New best!", 13, Color("2DD4BF"))
+		chip.autowrap_mode = TextServer.AUTOWRAP_OFF
+		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		h.add_child(chip)
 	return row

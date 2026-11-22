@@ -4,7 +4,7 @@ A daily puzzle break — a small suite of fun mini-games for Android. Play the
 short Today's Workout, or enjoy any game in Free Play, and beat your own best
 score.
 
-**This build** — five playable games:
+**This build** — six playable games:
 
 - **Sequence Memory** — watch the pattern of lights, then repeat it. How long
   can you go?
@@ -16,7 +16,10 @@ score.
   bar runs out.
 - **Path Memory** — watch a path light up across the grid, then retrace it
   step by step.
-- Memory Tiles, Spot the Difference and Quick Math are listed in the app as
+- **Tube Sort** — pour the colours between test tubes until every tube
+  holds a single colour. Every puzzle is generated solvable; your best is
+  fewest moves, then fastest time.
+- Memory Tiles and Spot the Difference are listed in the app as
   **Coming soon**.
 
 Design notes:

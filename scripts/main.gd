@@ -9,6 +9,7 @@ const NumberSlide := preload("res://scripts/number_slide.gd")
 const ColorWordClash := preload("res://scripts/color_word_clash.gd")
 const OddOneOut := preload("res://scripts/odd_one_out.gd")
 const PathMemory := preload("res://scripts/path_memory.gd")
+const TubeSort := preload("res://scripts/tube_sort.gd")
 const GameInfo := preload("res://scripts/game_info.gd")
 const UI := preload("res://scripts/ui_factory.gd")
 
@@ -17,6 +18,9 @@ var current: Control = null
 var workout_mode: bool = false
 
 func _ready() -> void:
+	# Phone par portrait lock — project setting ke sath runtime par bhi,
+	# taake auto-rotate wale phones par layout kabhi landscape na ho.
+	DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
 	var bg := ColorRect.new()
 	bg.color = UI.BG
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -32,13 +36,14 @@ func _ready() -> void:
 	_add_screen("color_word_clash", ColorWordClash.new())
 	_add_screen("odd_one_out", OddOneOut.new())
 	_add_screen("path_memory", PathMemory.new())
+	_add_screen("tube_sort", TubeSort.new())
 
 	screens["home"].play_requested.connect(_on_play_requested)
 	screens["home"].workout_requested.connect(_on_workout_requested)
 	screens["home"].progress_requested.connect(func() -> void: show_screen("progress"))
 	screens["progress"].back_requested.connect(func() -> void: show_screen("home"))
 	screens["result"].home_requested.connect(func() -> void: show_screen("home"))
-	for gid in ["sequence_memory", "number_slide", "color_word_clash", "odd_one_out", "path_memory"]:
+	for gid in ["sequence_memory", "number_slide", "color_word_clash", "odd_one_out", "path_memory", "tube_sort"]:
 		screens[gid].finished.connect(_on_game_finished)
 		screens[gid].exited.connect(_on_game_exited)
 
@@ -96,7 +101,13 @@ func _start_game(game_id: String, ctx: Dictionary) -> void:
 # --- Game end ---
 
 func _on_game_finished(game_id: String, score: int, stars: int) -> void:
-	var new_best: bool = Save.submit_pb(game_id, score)
+	var new_best: bool
+	if game_id == "tube_sort":
+		# Tube Sort ka best points nahi — kam moves, barabar par tez waqt.
+		var scr = screens[game_id]
+		new_best = Save.submit_sort_pb(game_id, int(scr.moves), int(scr.elapsed_seconds))
+	else:
+		new_best = Save.submit_pb(game_id, score)
 	if workout_mode:
 		var w := Save.ensure_today_workout()
 		(w["results"] as Dictionary)[game_id] = {"score": score, "stars": stars, "new_best": new_best}

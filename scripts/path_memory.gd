@@ -59,8 +59,8 @@ func _ready() -> void:
 	var title_v := VBoxContainer.new()
 	title_v.add_theme_constant_override("separation", 0)
 	top.add_child(title_v)
-	title_v.add_child(UI.label("Path Memory", 21, UI.TEXT))
-	mode_label = UI.label("", 13, UI.MUTED)
+	title_v.add_child(UI.label1("Path Memory", 21, UI.TEXT))
+	mode_label = UI.label1("", 13, UI.MUTED)
 	title_v.add_child(mode_label)
 	top.add_child(UI.hspacer())
 	dots_box = HBoxContainer.new()
@@ -83,7 +83,7 @@ func _ready() -> void:
 	status_label = UI.label("Watch the path…", 20, UI.TEXT)
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(status_label)
-	score_label = UI.label("Score: 0", 16, UI.MUTED)
+	score_label = UI.label1("Score: 0", 16, UI.MUTED)
 	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(score_label)
 
@@ -147,7 +147,7 @@ func _make_fail_overlay() -> Control:
 	var t := UI.label("Path missed", 22, UI.TEXT)
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cv.add_child(t)
-	fail_score_label = UI.label("", 15, UI.MUTED)
+	fail_score_label = UI.label1("", 15, UI.MUTED)
 	fail_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cv.add_child(fail_score_label)
 	var retry := UI.button("Retry", ACCENT, 17)

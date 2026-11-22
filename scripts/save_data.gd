@@ -14,6 +14,7 @@ func _ready() -> void:
 func _defaults() -> Dictionary:
 	return {
 		"pb": {},
+		"pb_sort": {},
 		"workout": {"date": "", "day": -1, "order": [], "results": {}, "counted": false},
 		"streak": {"count": 0, "last_day": -1, "total": 0, "history": []},
 	}
@@ -41,6 +42,8 @@ func _normalize() -> void:
 	data["streak"] = st
 	if not (data.get("pb") is Dictionary):
 		data["pb"] = {}
+	if not (data.get("pb_sort") is Dictionary):
+		data["pb_sort"] = {}
 
 func persist() -> void:
 	var cfg := ConfigFile.new()
@@ -59,6 +62,21 @@ func submit_pb(game_id: String, score: int) -> bool:
 		return true
 	return false
 
+# --- Tube Sort style bests: kam moves behtar, barabar moves par tez waqt ---
+
+func get_sort_pb(game_id: String) -> Dictionary:
+	var rec = data["pb_sort"].get(game_id, null)
+	return rec if rec is Dictionary else {}
+
+func submit_sort_pb(game_id: String, moves: int, seconds: int) -> bool:
+	var cur := get_sort_pb(game_id)
+	var better := cur.is_empty() or moves < int(cur["moves"]) or (moves == int(cur["moves"]) and seconds < int(cur["seconds"]))
+	if better:
+		data["pb_sort"][game_id] = {"moves": moves, "seconds": seconds}
+		persist()
+		return true
+	return false
+
 # --- Dates ---
 
 func today_str() -> String:
@@ -73,7 +91,7 @@ func day_number() -> int:
 func ensure_today_workout() -> Dictionary:
 	var w: Dictionary = data["workout"]
 	if str(w.get("date", "")) != today_str():
-		var order: Array = ["sequence_memory", "number_slide", "color_word_clash", "odd_one_out", "path_memory"]
+		var order: Array = ["sequence_memory", "number_slide", "color_word_clash", "odd_one_out", "path_memory", "tube_sort"]
 		if day_number() % 2 == 1:
 			order.reverse()
 		w = {"date": today_str(), "day": day_number(), "order": order, "results": {}, "counted": false}

@@ -70,8 +70,8 @@ func _ready() -> void:
 	var title_v := VBoxContainer.new()
 	title_v.add_theme_constant_override("separation", 0)
 	top.add_child(title_v)
-	title_v.add_child(UI.label("Color Word Clash", 21, UI.TEXT))
-	mode_label = UI.label("", 13, UI.MUTED)
+	title_v.add_child(UI.label1("Color Word Clash", 21, UI.TEXT))
+	mode_label = UI.label1("", 13, UI.MUTED)
 	title_v.add_child(mode_label)
 	top.add_child(UI.hspacer())
 	dots_box = HBoxContainer.new()
@@ -95,10 +95,10 @@ func _ready() -> void:
 	var hud := HBoxContainer.new()
 	hud.add_theme_constant_override("separation", 10)
 	v.add_child(hud)
-	score_label = UI.label("Score: 0", 17, UI.TEXT)
+	score_label = UI.label1("Score: 0", 17, UI.TEXT)
 	hud.add_child(score_label)
 	hud.add_child(UI.hspacer())
-	time_label = UI.label("Time: %d" % ROUND_SECONDS, 17, UI.TEXT)
+	time_label = UI.label1("Time: %d" % ROUND_SECONDS, 17, UI.TEXT)
 	hud.add_child(time_label)
 	time_bar = ProgressBar.new()
 	time_bar.min_value = 0
@@ -118,7 +118,7 @@ func _ready() -> void:
 	var center := CenterContainer.new()
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(center)
-	word_label = UI.label("?", 68, UI.MUTED)
+	word_label = UI.label1("?", 68, UI.MUTED)
 	word_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	center.add_child(word_label)
 

@@ -21,11 +21,11 @@ static func all() -> Dictionary:
 			"accent": Color("A78BFA"),
 			"playable": false,
 		},
-		"quick_math": {
-			"name": "Quick Math",
-			"tag": "Fast answers against the clock",
-			"accent": Color("FB7185"),
-			"playable": false,
+		"tube_sort": {
+			"name": "Tube Sort",
+			"tag": "Pour the colours until each tube is pure",
+			"accent": Color("38BDF8"),
+			"playable": true,
 		},
 		"number_slide": {
 			"name": "Number Slide",
@@ -54,7 +54,7 @@ static func all() -> Dictionary:
 	}
 
 static func free_play_order() -> Array:
-	return ["sequence_memory", "memory_tiles", "spot_difference", "quick_math", "number_slide", "color_word_clash", "odd_one_out", "path_memory"]
+	return ["sequence_memory", "memory_tiles", "spot_difference", "tube_sort", "number_slide", "color_word_clash", "odd_one_out", "path_memory"]
 
 static func get_game(game_id: String) -> Dictionary:
 	return all().get(game_id, {"name": game_id, "tag": "", "accent": Color.WHITE, "playable": false})
